@@ -1,0 +1,188 @@
+As the website is currently built, adding a new SOP document requires updating **four parts** of the repository:
+
+1. The editable ODT document
+2. The browser-readable PDF
+3. The document listing in `search-index.js`
+4. The navigation link in `index.html`
+
+The search will not automatically discover a newly uploaded PDF or ODT. The document must be added to the search index.
+
+## Recommended document workflow
+
+Create the new chapter in LibreOffice or another ODT-compatible editor.
+
+For example:
+
+```text
+Meeting Procedures.odt
+```
+
+Export the same document as a PDF:
+
+```text
+meeting-procedures.pdf
+```
+
+Use simple PDF filenames containing lowercase letters, numbers, and hyphens. This avoids GitHub Pages path problems.
+
+## 1. Upload the ODT file
+
+Place the editable file inside:
+
+```text
+source/
+```
+
+Example:
+
+```text
+source/Meeting Procedures.odt
+```
+
+The ODT filename can contain spaces, although filenames without spaces are easier to maintain.
+
+A cleaner naming approach would be:
+
+```text
+source/meeting-procedures.odt
+```
+
+## 2. Upload the PDF
+
+Place the exported PDF inside:
+
+```text
+documents/
+```
+
+Example:
+
+```text
+documents/meeting-procedures.pdf
+```
+
+The PDF is what the website previews and opens in the browser.
+
+## 3. Add the document to `search-index.js`
+
+Every document has one record inside `search-index.js`. A new document needs an entry similar to this:
+
+```javascript
+{
+  "id": "meeting-procedures",
+  "title": "Meeting Procedures",
+  "category": "Board & Governance",
+  "description": "Procedures for regular, special, and emergency meetings.",
+  "pdf": "./documents/meeting-procedures.pdf",
+  "odt": "./source/meeting-procedures.odt",
+  "content": "The complete text extracted from the Meeting Procedures document goes here..."
+}
+```
+
+Each field serves a specific purpose:
+
+| Field         | Purpose                                    |
+| ------------- | ------------------------------------------ |
+| `id`          | Unique internal name used by navigation    |
+| `title`       | Document name shown on the website         |
+| `category`    | Section where the document belongs         |
+| `description` | Brief library description                  |
+| `pdf`         | Path to the browser-readable PDF           |
+| `odt`         | Path to the editable source document       |
+| `content`     | Full document text searched by the website |
+
+The most important field for full-text search is:
+
+```javascript
+"content"
+```
+
+The complete text from the ODT must be extracted and inserted there. Merely uploading the ODT does not make its wording searchable.
+
+## 4. Add the document to the sidebar navigation
+
+Open `index.html` and locate the appropriate navigation section.
+
+For example, under:
+
+```html
+<span>Board &amp; Governance</span>
+```
+
+Add:
+
+```html
+<button
+  class="nav-link"
+  type="button"
+  data-view="meeting-procedures"
+  data-search="meeting procedures regular special emergency board notice quorum">
+  Meeting Procedures
+</button>
+```
+
+The value of:
+
+```html
+data-view="meeting-procedures"
+```
+
+must exactly match the document’s `id` in `search-index.js`:
+
+```javascript
+"id": "meeting-procedures"
+```
+
+The `data-search` words help identify the document in navigation, but the full-text search primarily uses the indexed `content`.
+
+## What happens automatically
+
+Once the document is correctly added to `search-index.js`, the website automatically:
+
+* Adds it to the Document Library
+* Searches its title
+* Searches its category
+* Searches its description
+* Searches its complete body text
+* Creates matching excerpts
+* Provides its PDF and ODT buttons
+* Creates its document detail view
+
+You do **not** need to build a separate HTML page for each new SOP.
+
+## When revising an existing SOP
+
+When the wording changes, replace both files:
+
+```text
+documents/existing-document.pdf
+source/existing-document.odt
+```
+
+Then replace the corresponding `content` text inside `search-index.js`.
+
+Without updating `search-index.js`, the website may display the revised PDF while continuing to search the old document wording.
+
+## Best long-term solution
+
+Manually copying the entire document text into `search-index.js` is possible, but it will become cumbersome as the SOP grows.
+
+The better workflow is to use a small index-generation script that:
+
+1. Reads every ODT file in `source/`
+2. Extracts the full text automatically
+3. Matches it to its PDF
+4. Builds `search-index.js`
+5. Reports missing PDFs or duplicate IDs
+
+Then your normal process would become:
+
+```text
+1. Add the ODT
+2. Add the PDF
+3. Add one short metadata record
+4. Run the index generator
+5. Upload the changed files to GitHub
+```
+
+For the package I generated, I used this kind of extraction process to index the seven existing documents. The most reliable next improvement would be to add a reusable `build-search-index.py` file and a simple document metadata file, so you never have to manually paste full SOP text into JavaScript.
